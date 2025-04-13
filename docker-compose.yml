@@ -1,0 +1,147 @@
+ nginx:
+    <<: *small-container
+    depends_on:
+      - synapse
+    image: nginx:mainline-alpine-slim
+    ports:
+      - "8008:8008"
+      - "8448:8448"
+    tmpfs:
+      - /var/cache/nginx/client_temp
+    volumes:
+      - sockets:/sockets
+      - ./nginx/config:/etc/nginx
+      - ./nginx/logs:/var/log/nginx/
+
+#Unix socket
+volumes:
+  sockets:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      
+services:
+  init-sockets:
+    command:
+      - sh
+      - -c
+      - |
+        chown -R 1000:1000 /sockets &&
+        chmod 777 /sockets &&
+        echo "Sockets initialised!"
+    image: alpine:latest
+    restart: no
+    volumes:
+      - sockets:/sockets
+  redis:
+    <<: *small-container
+    command: redis-server --unixsocket /sockets/synapse_redis.sock --unixsocketperm 660
+    image: redis:alpine
+    user: "1000:1000"
+    volumes:
+      - sockets:/sockets
+      - ./redis:/data
+
+#INSERT DATABASE
+
+#Docker template
+x-synapse-template: &synapse-template
+  <<: *medium-container
+  depends_on:
+    - init-sockets
+    - db
+    - redis
+  env_file: .synapse.env
+  image: matrixdotorg/synapse:latest
+  volumes:
+    - sockets:/sockets
+    - ./logs:/data/logs
+    - ./media:/media
+    - ./synapse:/data
+
+x-synapse-template: &synapse-template
+  <<: *medium-container
+  depends_on:
+    - init-sockets
+    - db
+    - redis
+  env_file: .synapse.env
+  image: matrixdotorg/synapse:latest
+  volumes:
+    - sockets:/sockets
+    - ./logs:/data/logs
+    - ./media:/media
+    - ./synapse:/data
+
+x-synapse-worker-template: &synapse-worker-template
+  <<: *synapse-template
+  depends_on:
+    - synapse
+  environment:
+    SYNAPSE_WORKER: synapse.app.generic_worker
+
+x-synapse-media-template: &synapse-media-template
+  <<: *synapse-template
+  depends_on:
+    - synapse
+  environment:
+    SYNAPSE_WORKER: synapse.app.media_repository
+
+x-postgres-template: &postgres-template
+  <<: *medium-container
+  depends_on:
+    - init-sockets
+  image: postgres:16-alpine
+  env_file: .postgres.env
+  shm_size: 1G
+  
+  synapse:
+    <<: *synapse-template
+
+  client-sync1:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/client_sync1.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_replication_client_sync1.sock http://localhost/health
+
+  federation-reader1:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/federation_reader1.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_inbound_federation_reader1.sock http://localhost/health
+
+  media1:
+    <<: *synapse-media-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/media1.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_replication_media1.sock http://localhost/health
+
+  rooms1:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/rooms1.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_inbound_rooms1.sock http://localhost/health
+
+  rooms2:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/rooms2.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_inbound_rooms2.sock http://localhost/health
+
+  rooms3:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/rooms3.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_inbound_rooms3.sock http://localhost/health
+
+  rooms4:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/rooms4.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_inbound_rooms4.sock http://localhost/health
+
+  tasks1:
+    <<: *synapse-worker-template
+    command: run --config-path=/data/homeserver.yaml --config-path=/data/workers/tasks1.yaml
+    healthcheck:
+      test: curl -fSs --unix-socket /sockets/synapse_replication_tasks1.sock http://localhost/health

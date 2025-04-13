@@ -1,0 +1,40 @@
+version: 1
+formatters:
+  precise:
+    format: '%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(request)s - %(message)s'
+handlers:
+  file:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: precise
+    filename: /data/log/rooms.log
+    when: midnight
+    backupCount: 3
+    encoding: utf8
+
+  buffer:
+    class: synapse.logging.handlers.PeriodicallyFlushingMemoryHandler
+    target: file
+    capacity: 10
+    flushLevel: 30
+    period: 5
+
+loggers:
+  synapse.metrics:
+    level: WARN
+    handlers: [buffer]
+  synapse.replication.tcp:
+    level: WARN
+    handlers: [buffer]
+  synapse.util.caches.lrucache:
+    level: WARN
+    handlers: [buffer]
+  twisted:
+    level: WARN
+    handlers: [buffer]
+  synapse:
+    level: INFO
+    handlers: [buffer]
+
+root:
+  level: INFO
+  handlers: [buffer]

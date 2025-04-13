@@ -1,0 +1,203 @@
+# Basic Server Details
+server_name: "mydomain.com" # Domain name used by other homeservers to connect to you
+public_baseurl: "https://matrix.mydomain.com/" # Public URL of your Synapse server
+admin_contact: "mailto:admin@mydomain.com" # Contact email for the server admin
+pid_file: "/data/process.pid" # File that stores the process ID of the Synapse server
+signing_key_path: "/data/mydomain.com.signing.key" # Location of the signing key for the server
+
+# Logging and Monitoring
+log_config: "/data/log.config/synapse.log.config" # Path to the logging configuration file
+report_stats: false # Whether to report anonymous statistics
+enable_metrics: false # Enable the metrics listener to monitor with Prometheus
+
+# Login and Registration
+enable_registration: false # Whether to allow users to register on this server
+enable_registration_captcha: true # Whether to enable CAPTCHA for registration
+enable_registration_without_verification: false # Allow users to register without email verification
+delete_stale_devices_after: 30d # Devices not synced in this long will have their tokens and pushers retired
+password_config:
+  enabled: true # Set to false to only allow SSO login
+
+# Database and Storage Configuration
+database:
+  name: psycopg2 # PostgreSQL adapter for Python
+  args:
+    user: synapse # Username to login to Postgres
+    password: SuperSecretPassword # Password for Postgres
+    database: synapse # Name of the database in Postgres
+    host: "/sockets" # Hostname of the Postgres server, or socket directory
+    cp_min: 1 # Minimum number of database connections to keep open
+    cp_max: 20 # Maximum number of database connections to keep open
+
+# Redis Configuration
+redis:
+  enabled: true # Required for workers to operate correctly
+  path: "/sockets/synapse_redis.sock" # Path to Redis listening socket
+
+# Network Configuration
+listeners:
+  - path: "/sockets/synapse_replication_main.sock" # Path to Unix socket
+    type: http # Type of listener, almost always http
+    resources:
+      - names: [replication] # Replication allows workers to communicate with the main thread
+        compress: false # Whether to compress responses
+  - path: "/sockets/synapse_inbound_main.sock" # Path to Unix socket
+    type: http # Type of listener, almost always http
+    x_forwarded: true # Use the 'X-Forwarded-For' header to recognise the client IP address
+    resources:
+      - names: [client, federation] # Client API and federation between homeservers
+        compress: false # Whether to compress responses
+  - type: metrics # Used for Prometheus metrics later
+    port: 10101 # Easy port to remember later?
+
+# Workers will eventually go here
+instance_map:
+  main: # The main process should always be here
+    path: "/sockets/synapse_replication_main.sock"
+  client_sync1:
+    path: "/sockets/synapse_replication_client_sync1.sock"
+  media1:
+    path: "/sockets/synapse_replication_media1.sock"
+  tasks1:
+    path: "/sockets/synapse_replication_tasks1.sock"
+
+# Trusted Key Servers
+trusted_key_servers: # Servers to check for server keys when another server's keys are unknown
+  - server_name: "beeper.com"
+  - server_name: "matrix.org"
+  - server_name: "t2bot.io"
+suppress_key_server_warning: true # Suppress warning that matrix.org is in above list
+
+# Federation Configuration
+allow_public_rooms_over_federation: false # Allow other servers to read your public room directory
+federation: # Back off retrying dead servers as often
+  destination_min_retry_interval: 1m
+  destination_retry_multiplier: 5
+  destination_max_retry_interval: 365d
+federation_ip_range_blacklist: # IP address ranges to forbid for federation
+  - '10.0.0.0/8'
+  - '100.64.0.0/10'
+  - '127.0.0.0/8'
+  - '169.254.0.0/16'
+  - '172.16.0.0/12'
+  - '192.168.0.0/16'
+  - '::1/128'
+  - 'fc00::/7'
+  - 'fe80::/64'
+
+# Cache Configuration
+event_cache_size: 30K
+caches:
+  global_factor: 1
+  expire_caches: true
+  cache_entry_ttl: 1080m
+  sync_response_cache_duration: 2m
+  per_cache_factors:
+    get_current_hosts_in_room: 3
+    get_local_users_in_room: 3
+    get_partial_current_state_ids: 0.5
+    _get_presence_for_user: 3
+    get_rooms_for_user: 3
+    _get_server_keys_json: 3
+    stateGroupCache: 0.1
+    stateGroupMembersCache: 0.2
+  cache_autotuning:
+    max_cache_memory_usage: 896M
+    target_cache_memory_usage: 512M
+    min_cache_ttl: 30s
+
+# Garbage Collection (Cache Eviction)
+gc_thresholds: [550, 10, 10]
+gc_min_interval: [1s, 1m, 2m]
+
+# Media Configuration
+media_store_path: "/media" # Path where media files will be stored
+media_retention:
+  local_media_lifetime: 5y # Maximum time to retain local media files
+  remote_media_lifetime: 30d # Maximum time to retain remote media files
+
+# User and Room Management
+allow_guest_access: false # Whether to allow guest access
+auto_join_rooms: # Rooms to auto-join new users to
+  - "#welcome-room:mydomain.com"
+autocreate_auto_join_rooms: true # Auto-create auto-join rooms if they're missing
+presence:
+  enabled: true # Enable viewing/sharing of online status and last active time
+push:
+  include_content: true # Include content of events in push notifications
+user_directory:
+  enabled: true # Whether to maintain a user directory
+  search_all_users: true # Whether to include all users in user directory search results
+  prefer_local_users: true # Whether to give local users higher search result ranking
+
+# Data Retention
+retention:
+  enabled: false # Whether to enable automatic data retention policies
+forget_rooms_on_leave: true # Automatically forget rooms when leaving them
+forgotten_room_retention_period: 1d # Purge rooms this long after all local users forgot it
+
+# URL Preview Configuration
+url_preview_enabled: true # Whether to enable URL previews in messages
+url_preview_accept_language: # Language preferences for URL preview content
+  - 'en-GB'
+  - 'en-US;q=0.9'
+  - '*;q=0.8'
+url_preview_ip_range_blacklist: # Forbid previews for URLs at IP addresses in these ranges
+  - '10.0.0.0/8'
+  - '100.64.0.0/10'
+  - '127.0.0.0/8'
+  - '169.254.0.0/16'
+  - '172.16.0.0/12'
+  - '192.168.0.0/16'
+  - '::1/128'
+  - 'fc00::/7'
+  - 'fe80::/64'
+
+# SSO Configuration
+oidc_providers:
+  - idp_id: authentik
+    idp_name: "SSO"
+    idp_icon: "mxc://mydomain.com/SomeImageURL"
+    discover: true
+    issuer: "https://auth.fostered.uk/application/o/matrix/"
+    client_id: "SuperSecretClientId"
+    client_secret: "SuperSecretClientSecret"
+    scopes: ["openid", "profile", "email"]
+    allow_existing_users: true
+    user_mapping_provider:
+      config:
+        localpart_template: "{{ user.preferred_username }}"
+        display_name_template: "{{ user.name|capitalize }}"
+        email_template: "{{ user.email }}"
+
+# Security and Authentication
+form_secret: "SuperSecretValue1" # Secret for preventing CSRF attacks
+macaroon_secret_key: "SuperSecretValue2" # Secret for generating macaroons
+registration_shared_secret: "SuperSecretValue3" # Shared secret for registration
+recaptcha_public_key: "SuperSecretValue4" # Public key for reCAPTCHA
+recaptcha_private_key: "SuperSecretValue5" # Private key for reCAPTCHA
+worker_replication_secret: "SuperSecretValue6" # Secret for communication between Synapse and workers
+
+enable_media_repo: false
+media_instance_running_background_jobs: media1
+notify_appservices_from_worker: tasks1
+pusher_instances:
+  - tasks1
+run_background_tasks_on: tasks1
+start_pushers: false
+stream_writers:
+  account_data:
+    - client_sync1
+  events:
+    - tasks1
+  presence:
+    - client_sync1
+  receipts:
+    - client_sync1
+  to_device:
+    - client_sync1
+  typing:
+    - client_sync1
+update_user_directory_from_worker: client_sync1
+
+  

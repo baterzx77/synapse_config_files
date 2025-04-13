@@ -1,0 +1,22 @@
+worker_app: "synapse.app.generic_worker" # Always this unless "synapse.app.media_repository"
+worker_name: "client_sync1" # Name of worker specified in instance map
+worker_log_config: "/data/log.config/client_sync.log.config" # Log config file
+
+worker_listeners:
+  # Include for any worker in the instance map above:
+  - path: "/sockets/synapse_replication_client_sync1.sock"
+    type: http
+    resources:
+      - names: [replication]
+        compress: false
+  # Include for any worker that receives requests in Nginx:
+  - path: "/sockets/synapse_inbound_client_sync1.sock"
+    type: http
+    x_forwarded: true # Trust the X-Forwarded-For header from Nginx
+    resources:
+      - names: [client, federation]
+        compress: false
+  # Include when using Prometheus or compatible monitoring system:
+  - type: metrics
+    bind_address: ''
+    port: 9000
