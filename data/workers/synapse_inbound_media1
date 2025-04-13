@@ -1,0 +1,19 @@
+worker_app: "synapse.app.generic_worker"
+worker_name: "synapse_inbound_media1"
+
+worker_listeners:
+  - path: "/sockets/synapse_inbound_media1.sock"
+    resources:
+      - names: [media, client]
+    x_forwarded: true    
+    additional_resources:
+      "^/_matrix/media/";
+      "^/_synapse/admin/v1/purge_media_cache$";
+      "^/_synapse/admin/v1/room/.*/media.*$";
+      "^/_synapse/admin/v1/user/.*/media.*$";
+      "^/_synapse/admin/v1/media/.*$";
+      "^/_synapse/admin/v1/quarantine_media/.*$";
+      "^/_matrix/client/v1/media/.*$";
+      "^/_matrix/federation/v1/media/.*$";
+	  enable_media_repo: true
+      media_instance_running_background_jobs": WORKER_PLACEHOLDER_NAME
