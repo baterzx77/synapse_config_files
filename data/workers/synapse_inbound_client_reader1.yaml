@@ -1,0 +1,36 @@
+worker_app: "synapse.app.generic_worker"
+worker_name: "synapse_inbound_client_reader1"
+
+worker_listeners:
+  - path: "/sockets/synapse_inbound_client_reader1.sock"
+    resources:
+      - names: [client]
+    x_forwarded: true    
+    additional_resources:
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/publicRooms$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/joined_members$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/context/.*$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/members$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/state$";
+      "^/_matrix/client/v1/rooms/.*/hierarchy$";
+      "^/_matrix/client/(v1|unstable)/rooms/.*/relations/";
+      "^/_matrix/client/v1/rooms/.*/threads$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/login$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/account/3pid$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/account/whoami$";
+      "^/_matrix/client/versions$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/voip/turnServer$";
+      "^/_matrix/client/(r0|v3|unstable)/register$";
+      "^/_matrix/client/(r0|v3|unstable)/register/available$";
+      "^/_matrix/client/(r0|v3|unstable)/auth/.*/fallback/web$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/messages$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/event";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/joined_rooms";
+      "^/_matrix/client/(api/v1|r0|v3|unstable/.*)/rooms/.*/aliases";
+      "^/_matrix/client/v1/rooms/.*/timestamp_to_event$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/search";
+      "^/_matrix/client/(r0|v3|unstable)/user/.*/filter(/|$)";
+      "^/_matrix/client/(r0|v3|unstable)/password_policy$";
+      "^/_matrix/client/(api/v1|r0|v3|unstable)/directory/room/.*$";
+      "^/_matrix/client/(r0|v3|unstable)/capabilities$";
+      "^/_matrix/client/(r0|v3|unstable)/notifications$";

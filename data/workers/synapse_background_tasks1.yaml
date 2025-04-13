@@ -1,0 +1,7 @@
+worker_app: "synapse.app.generic_worker"
+worker_name: "synapse_background_tasks1"
+
+worker_listeners:
+  - path: "/sockets/synapse_background_tasks1.sock"
+    x_forwarded: true    
+    run_background_tasks_on: WORKER_PLACEHOLDER_NAME
